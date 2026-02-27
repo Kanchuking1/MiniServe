@@ -1,0 +1,14 @@
+# MiniServe — Day 1: standalone inference (no Redis/API yet)
+# Usage:
+#   docker compose run --rm inference          # run CPU benchmark (default)
+#   docker compose run --rm inference --benchmark 50
+#   docker compose run --rm -v ./images:/data inference /data/photo.jpg
+
+services:
+  inference:
+    build:
+      context: .
+      dockerfile: DockerFile.worker
+    image: miniserve-worker:latest
+    # Mount a folder with test images (optional): -v ./images:/data
+    command: ["--benchmark", "20"]
