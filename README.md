@@ -8,11 +8,11 @@ The system decouples request handling from model execution using a queue-based a
 
 ## Features
 
-- **Async inference API** — Submit images, get a job ID, poll for results
-- **Redis Streams** — Job queue and result storage
-- **CPU-based ResNet** — Pretrained ImageNet model via torchvision (CPU-only for v0)
-- **Dockerized** — API, worker, and inference prototype run in containers
-- **Extensible** — Clean layout for adding workers, batching, or GPU later
+- **Async inference API** - Submit images, get a job ID, poll for results
+- **Redis Streams** - Job queue and result storage
+- **CPU-based ResNet** - Pretrained ImageNet model via torchvision (CPU-only for v0)
+- **Dockerized** - API, worker, and inference prototype run in containers
+- **Extensible** - Clean layout for adding workers, batching, or GPU later
 
 ---
 
@@ -101,6 +101,9 @@ MiniServe/
 ├── docker-compose.yml
 ├── DockerFile.api
 ├── DockerFile.worker
+├── tests/               # Pytest suite (model + API)
+├── requirements-dev.txt
+├── pytest.ini
 ├── PLAN.md              # Week plan and architecture
 └── README.md
 ```
@@ -109,12 +112,28 @@ MiniServe/
 
 ## Architecture (target)
 
-1. **Client** uploads image to API `/submit` → receives `job_id`
+1. **Client** uploads image to API `/submit` -> receives `job_id`
 2. **API** pushes job to Redis Stream, returns `job_id`
 3. **Worker(s)** consume from stream, run ResNet inference, write result to Redis
 4. **Client** polls `/result/{job_id}` until complete → gets prediction + confidence
 
 See [PLAN.md](PLAN.md) for the full week plan, tech stack, and roadmap.
+
+---
+
+## Tests
+
+From repo root:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+- **tests/test_model.py** — Model: `preprocess_image` shape, `predict` output, `load_model`, `load_and_predict`.
+- **tests/test_api.py** — API: `GET /`, `GET /health`, `POST /predict` (valid image, non-image, invalid bytes).
+
+First run loads ResNet once (slower); later tests reuse it.
 
 ---
 
