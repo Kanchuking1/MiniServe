@@ -1,0 +1,4 @@
+# Test and dev dependencies. Install: pip install -r requirements-dev.txt
+-r api/requirements.txt
+pytest>=7.0.0
+httpx
