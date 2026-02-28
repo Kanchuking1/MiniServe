@@ -1,44 +1,38 @@
 """
-MiniServe API — Day 2: synchronous /predict endpoint.
-Accepts image upload, runs inference, returns prediction JSON.
+MiniServe API — Day 3: async submission via Redis Stream.
+/submit: accept image, push job to stream, return job_id.
+/result/{job_id}: return result when ready (worker writes in Day 4).
 """
 
+import base64
 import io
 import sys
+import uuid
 from pathlib import Path
 
-# Ensure worker package is importable (when run from api/ or repo root)
+# Ensure worker package is importable when run from api/ or repo root
 _root = Path(__file__).resolve().parent.parent
 if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
-from PIL import Image
 
-from worker.model import load_model, preprocess_image, predict
+from api.redis_client import get_result, push_job
 
 app = FastAPI(
     title="MiniServe",
-    description="Image classification inference API",
-    version="0.2.0",
+    description="Image classification inference API (async job queue)",
+    version="0.3.0",
 )
-
-DEVICE = "cpu"
-
-
-@app.on_event("startup")
-def startup():
-    app.state.model = load_model(DEVICE)
-
-
-def get_model():
-    return app.state.model
 
 
 @app.get("/")
 def root():
-    return {"service": "MiniServe", "endpoints": ["/predict", "/health"]}
+    return {
+        "service": "MiniServe",
+        "endpoints": ["/submit", "/result/{job_id}", "/health"],
+    }
 
 
 @app.get("/health")
@@ -46,21 +40,42 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/predict")
-async def predict_endpoint(file: UploadFile = File(...)):
+@app.post("/submit")
+async def submit(file: UploadFile = File(...)):
     """
-    Accept an image file, run ResNet inference, return top-1 prediction.
+    Accept an image file, push job to Redis Stream, return job_id.
+    Client should poll /result/{job_id} for the prediction.
     """
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Expected an image file")
 
     try:
         contents = await file.read()
-        img = Image.open(io.BytesIO(contents)).convert("RGB")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid image: {e!s}")
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {e!s}")
 
-    model = get_model()
-    tensor = preprocess_image(img).to(DEVICE)
-    result = predict(model, tensor, DEVICE)
-    return JSONResponse(content=result)
+    if not contents:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    job_id = str(uuid.uuid4())
+    image_b64 = base64.standard_b64encode(contents).decode("ascii")
+    print(f"job_id: {job_id}")
+    try:
+        push_job(job_id, image_b64)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Queue unavailable: {e!s}")
+
+    return JSONResponse(content={"job_id": job_id})
+
+
+@app.get("/result/{job_id}")
+def result(job_id: str):
+    """
+    Return job result if ready. Worker writes to Redis when inference is done.
+    Returns {"status": "pending"} until then.
+    """
+    data = get_result(job_id)
+    if data is None:
+        return JSONResponse(content={"status": "pending"})
+    # Worker stores: status, class_id, label, confidence (and optionally error)
+    return JSONResponse(content=data)

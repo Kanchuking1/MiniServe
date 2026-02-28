@@ -1,9 +1,10 @@
 """
-API tests for FastAPI app: /, /health, /predict.
-Uses TestClient; app startup loads the model once per module.
+API tests for FastAPI app: /, /health, /submit, /result/{job_id}.
+Day 3: async submission (no in-process inference).
 """
 
 import io
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,7 +15,7 @@ from api.main import app
 
 @pytest.fixture(scope="module")
 def client():
-    """TestClient with app; use as context manager so lifespan (startup) runs and app.state.model is set."""
+    """TestClient with app; startup runs once per module."""
     with TestClient(app) as c:
         yield c
 
@@ -26,7 +27,8 @@ class TestRoot:
         data = r.json()
         assert data["service"] == "MiniServe"
         assert "endpoints" in data
-        assert "/predict" in data["endpoints"]
+        assert "/submit" in data["endpoints"]
+        assert "/result/{job_id}" in data["endpoints"]
         assert "/health" in data["endpoints"]
 
 
@@ -37,33 +39,41 @@ class TestHealth:
         assert r.json() == {"status": "ok"}
 
 
-class TestPredict:
-    def test_predict_accepts_image_returns_prediction(self, client, sample_image):
+class TestSubmit:
+    @patch("api.main.push_job")
+    def test_submit_accepts_image_returns_job_id(self, mock_push_job, client, sample_image):
+        mock_push_job.return_value = "0-1"
         buf = io.BytesIO()
         sample_image.save(buf, format="PNG")
         buf.seek(0)
-        r = client.post("/predict", files={"file": ("image.png", buf, "image/png")})
+        r = client.post("/submit", files={"file": ("image.png", buf, "image/png")})
         assert r.status_code == 200
         data = r.json()
-        assert "class_id" in data
-        assert "label" in data
-        assert "confidence" in data
-        assert isinstance(data["class_id"], int)
-        assert 0 <= data["class_id"] <= 999
-        assert 0 <= data["confidence"] <= 1
+        assert "job_id" in data
+        assert len(data["job_id"]) == 36  # uuid4 hex + dashes
+        mock_push_job.assert_called_once()
 
-    def test_predict_rejects_non_image(self, client):
+    def test_submit_rejects_non_image(self, client):
         r = client.post(
-            "/predict",
+            "/submit",
             files={"file": ("file.txt", io.BytesIO(b"not an image"), "text/plain")},
         )
         assert r.status_code == 400
         assert "Expected an image" in r.json()["detail"]
 
-    def test_predict_rejects_invalid_image_bytes(self, client):
+    def test_submit_rejects_empty_file(self, client):
         r = client.post(
-            "/predict",
-            files={"file": ("x.png", io.BytesIO(b"not png content"), "image/png")},
+            "/submit",
+            files={"file": ("empty.png", io.BytesIO(), "image/png")},
         )
         assert r.status_code == 400
-        assert "Invalid image" in r.json()["detail"]
+        assert "Empty" in r.json()["detail"]
+
+
+class TestResult:
+    @patch("api.main.get_result")
+    def test_result_unknown_job_returns_pending(self, mock_get_result, client):
+        mock_get_result.return_value = None
+        r = client.get("/result/00000000-0000-0000-0000-000000000000")
+        assert r.status_code == 200
+        assert r.json() == {"status": "pending"}

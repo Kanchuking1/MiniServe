@@ -1,21 +1,12 @@
-# MiniServe API — Day 2: sync /predict (in-process inference)
+# MiniServe API — Day 3: async job queue (no in-process inference)
 
 FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libjpeg-dev zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# API deps: FastAPI, uvicorn, python-multipart (for form/file uploads); CPU-only PyTorch
 COPY api/requirements.txt ./api/
-RUN pip install --no-cache-dir "fastapi>=0.100.0" "uvicorn[standard]>=0.22.0" "python-multipart" \
-    && pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir "Pillow>=9.0.0"
+RUN pip install --no-cache-dir -r api/requirements.txt
 
-# Worker code needed for model (load_model, preprocess, predict)
-COPY worker/ ./worker/
 COPY api/ ./api/
 
 ENV PYTHONPATH=/app

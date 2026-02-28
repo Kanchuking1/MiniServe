@@ -54,31 +54,35 @@ python run_inference.py path/to/image.jpg
 python run_inference.py --benchmark 20
 ```
 
-### Sync API (Day 2)
+### Async API (Day 3)
 
-Run the FastAPI service with a `/predict` endpoint: upload an image, get back prediction JSON (class_id, label, confidence).
+Run the API and Redis; submit an image to get a `job_id`, then poll `/result/{job_id}` (worker writes results in Day 4).
 
 **Using Docker:**
 
 ```bash
-docker compose up api
-# API at http://localhost:8000
+docker compose up api redis
+# API at http://localhost:8000, Redis at localhost:6379
 # Docs: http://localhost:8000/docs
 ```
 
-**Local:**
+**Local (Redis required):**
 
 ```bash
-# From repo root (so worker package is importable)
 pip install -r api/requirements.txt
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+# Start Redis (e.g. docker run -p 6379:6379 redis:7-alpine)
+REDIS_URL=redis://localhost:6379/0 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Example request:**
+**Example flow:**
 
 ```bash
-curl -X POST http://localhost:8000/predict -F "file=@path/to/image.jpg"
-# → {"class_id": 281, "label": "tabby", "confidence": 0.7234}
+# Submit image → get job_id
+curl -X POST http://localhost:8000/submit -F "file=@image.jpg"
+# → {"job_id": "550e8400-e29b-41d4-a716-446655440000"}
+
+# Poll for result (returns {"status": "pending"} until worker completes it)
+curl http://localhost:8000/result/550e8400-e29b-41d4-a716-446655440000
 ```
 
 ---
@@ -89,6 +93,7 @@ curl -X POST http://localhost:8000/predict -F "file=@path/to/image.jpg"
 MiniServe/
 ├── api/                 # FastAPI service (submit job, poll result)
 │   ├── main.py
+│   ├── redis_client.py  # Stream + result keys
 │   └── requirements.txt
 ├── worker/              # Inference worker + model
 │   ├── model.py         # ResNet loader, preprocessing, predict()
@@ -131,7 +136,7 @@ pytest
 ```
 
 - **tests/test_model.py** — Model: `preprocess_image` shape, `predict` output, `load_model`, `load_and_predict`.
-- **tests/test_api.py** — API: `GET /`, `GET /health`, `POST /predict` (valid image, non-image, invalid bytes).
+- **tests/test_api.py** — API: `GET /`, `GET /health`, `POST /submit` (image → job_id), `GET /result/{job_id}` (pending).
 
 First run loads ResNet once (slower); later tests reuse it.
 
