@@ -1,0 +1,14 @@
+<html>
+    <head>
+        <title>MiniServe</title>
+    </head>
+    <body>
+        <h1>MiniServe</h1>
+        <form action="/predict" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" />
+            <button type="submit">Upload</button>
+        </form>
+        <div id="result"></div>
+    </body>
+    <script src="script.js"></script>
+</html>
