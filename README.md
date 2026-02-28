@@ -54,6 +54,33 @@ python run_inference.py path/to/image.jpg
 python run_inference.py --benchmark 20
 ```
 
+### Sync API (Day 2)
+
+Run the FastAPI service with a `/predict` endpoint: upload an image, get back prediction JSON (class_id, label, confidence).
+
+**Using Docker:**
+
+```bash
+docker compose up api
+# API at http://localhost:8000
+# Docs: http://localhost:8000/docs
+```
+
+**Local:**
+
+```bash
+# From repo root (so worker package is importable)
+pip install -r api/requirements.txt
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Example request:**
+
+```bash
+curl -X POST http://localhost:8000/predict -F "file=@path/to/image.jpg"
+# → {"class_id": 281, "label": "tabby", "confidence": 0.7234}
+```
+
 ---
 
 ## Project Structure
