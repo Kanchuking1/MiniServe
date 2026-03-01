@@ -31,6 +31,13 @@ class TestRoot:
         assert "/result/{job_id}" in data["endpoints"]
         assert "/health" in data["endpoints"]
         assert "/queue" in data["endpoints"]
+        assert "/app" in data["endpoints"]
+
+    def test_app_serves_demo_ui(self, client):
+        """Day 6: frontend is mounted at /app/."""
+        r = client.get("/app/")
+        assert r.status_code == 200
+        assert b"MiniServe" in r.content and b"Upload" in r.content
 
 
 class TestHealth:

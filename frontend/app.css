@@ -1,0 +1,147 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    background: #1a1a2e;
+    color: #eee;
+}
+
+.container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+}
+
+.tagline {
+    margin: 0;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.upload-zone {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+#file-input {
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.file-label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.file-label:hover {
+    background: #0f3460;
+}
+
+.file-name {
+    font-size: 0.85rem;
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+
+#submit-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    background: #e94560;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#submit-btn:hover:not(:disabled) {
+    background: #ff6b6b;
+}
+
+#submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.status {
+    min-height: 1.5rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.status.busy {
+    color: #e94560;
+}
+
+.result {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: #16213e;
+    border-radius: 8px;
+    border: 1px solid #0f3460;
+}
+
+.result h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: #e94560;
+}
+
+.result .label {
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.result .confidence {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.result .error {
+    color: #e94560;
+}
+
+.preview {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    border: 1px solid #0f3460;
+}

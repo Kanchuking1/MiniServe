@@ -17,6 +17,7 @@ if str(_root) not in sys.path:
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from api.redis_client import get_queue_depth, get_result, push_job
 
@@ -31,7 +32,7 @@ app = FastAPI(
 def root():
     return {
         "service": "MiniServe",
-        "endpoints": ["/submit", "/result/{job_id}", "/health", "/queue"],
+        "endpoints": ["/submit", "/result/{job_id}", "/health", "/queue", "/app"],
     }
 
 
@@ -89,3 +90,9 @@ def result(job_id: str):
         return JSONResponse(content={"status": "pending"})
     # Worker stores: status, class_id, label, confidence (and optionally error)
     return JSONResponse(content=data)
+
+
+# Day 6: serve minimal frontend at /app/ (demo UI)
+_frontend_dir = _root / "frontend"
+if _frontend_dir.is_dir():
+    app.mount("/app", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")

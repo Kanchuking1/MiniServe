@@ -62,9 +62,8 @@ End-to-end flow: API enqueues jobs, worker consumes and runs inference, client p
 
 ```bash
 docker compose up redis api worker
-# API at http://localhost:8000, Redis at localhost:6379
-# Worker consumes from stream and writes results to Redis
-# Docs: http://localhost:8000/docs
+# API: http://localhost:8000  |  App: http://localhost:8000/app  |  Docs: http://localhost:8000/docs
+# Redis: localhost:6379
 ```
 
 **Local (Redis required):**
@@ -114,6 +113,18 @@ pip install requests
 python scripts/load_test.py --image data/test_image1.png --n 20 --wait
 ```
 
+### Demo UI (Day 6)
+
+The web application is served at **/app**. After starting the stack, open it in a browser:
+
+```bash
+docker compose up redis api worker
+# Application: http://localhost:8000/app
+```
+
+- Choose an image → **Upload & classify** → status shows “Uploading…”, “Processing…”, then **Prediction** (label + confidence) or an error.
+- The app uses the async flow: POST /submit, then polls /result/{job_id} until the worker finishes.
+
 ---
 
 ## Project Structure
@@ -130,8 +141,10 @@ MiniServe/
 │   ├── worker.py        # Stream consumer: XREAD → inference → result hash (Day 4)
 │   ├── requirements.txt
 │   └── imagenet_labels.txt
-├── frontend/            # Optional minimal UI
-│   └── index.html
+├── frontend/            # Demo UI (Day 6): upload, poll, show prediction
+│   ├── index.html
+│   ├── app.css
+│   └── script.js
 ├── docker-compose.yml
 ├── DockerFile.api
 ├── DockerFile.worker

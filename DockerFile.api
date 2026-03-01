@@ -8,6 +8,7 @@ COPY api/requirements.txt ./api/
 RUN pip install --no-cache-dir -r api/requirements.txt
 
 COPY api/ ./api/
+COPY frontend/ ./frontend/
 
 ENV PYTHONPATH=/app
 EXPOSE 8000

@@ -1,14 +1,33 @@
-<html>
-    <head>
-        <title>MiniServe</title>
-    </head>
-    <body>
-        <h1>MiniServe</h1>
-        <form action="/predict" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" />
-            <button type="submit">Upload</button>
-        </form>
-        <div id="result"></div>
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniServe — Image classification</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MiniServe</h1>
+            <p class="tagline">Upload an image for ResNet classification</p>
+        </header>
+
+        <main>
+            <form id="upload-form">
+                <div class="upload-zone">
+                    <input type="file" id="file-input" name="file" accept="image/*" required>
+                    <label for="file-input" class="file-label">Choose image</label>
+                    <span id="file-name" class="file-name"></span>
+                </div>
+                <button type="submit" id="submit-btn" disabled>Upload & classify</button>
+            </form>
+
+            <div id="status" class="status" aria-live="polite"></div>
+            <div id="preview" class="preview"></div>
+            <div id="result" class="result"></div>
+        </main>
+    </div>
     <script src="script.js"></script>
+</body>
 </html>
