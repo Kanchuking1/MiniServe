@@ -1,10 +1,12 @@
-# MiniServe — Day 5: API + Redis + Worker(s); scale workers: docker compose up --scale worker=3
+# MiniServe — Day 5: scale workers with --scale worker=3 | Day 7: single-host deploy (EC2)
+# Production: all services use restart: unless-stopped for EC2 / single instance.
 
 services:
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    restart: unless-stopped
 
   api:
     build:
@@ -17,6 +19,7 @@ services:
       REDIS_URL: redis://redis:6379/0
     depends_on:
       - redis
+    restart: unless-stopped
 
   worker:
     build:
@@ -25,9 +28,9 @@ services:
     image: miniserve-worker:latest
     environment:
       REDIS_URL: redis://redis:6379/0
-      # WORKER_ID defaults to hostname (unique per replica when using --scale worker=N)
     depends_on:
       - redis
+    restart: unless-stopped
 
   inference:
     build:

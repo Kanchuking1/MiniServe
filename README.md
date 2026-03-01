@@ -124,7 +124,6 @@ docker compose up redis api worker
 
 - Choose an image → **Upload & classify** → status shows “Uploading…”, “Processing…”, then **Prediction** (label + confidence) or an error.
 - The app uses the async flow: POST /submit, then polls /result/{job_id} until the worker finishes.
-
 ---
 
 ## Project Structure
