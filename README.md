@@ -54,24 +54,32 @@ python run_inference.py path/to/image.jpg
 python run_inference.py --benchmark 20
 ```
 
-### Async API (Day 3)
+### Async API + Worker (Day 4)
 
-Run the API and Redis; submit an image to get a `job_id`, then poll `/result/{job_id}` (worker writes results in Day 4).
+End-to-end flow: API enqueues jobs, worker consumes and runs inference, client polls for result.
 
 **Using Docker:**
 
 ```bash
-docker compose up api redis
+docker compose up redis api worker
 # API at http://localhost:8000, Redis at localhost:6379
+# Worker consumes from stream and writes results to Redis
 # Docs: http://localhost:8000/docs
 ```
 
 **Local (Redis required):**
 
 ```bash
+# Terminal 1: Redis
+docker run -p 6379:6379 redis:7-alpine
+
+# Terminal 2: API
 pip install -r api/requirements.txt
-# Start Redis (e.g. docker run -p 6379:6379 redis:7-alpine)
 REDIS_URL=redis://localhost:6379/0 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 3: Worker
+pip install -r worker/requirements.txt
+REDIS_URL=redis://localhost:6379/0 python worker/worker.py
 ```
 
 **Example flow:**
@@ -81,8 +89,9 @@ REDIS_URL=redis://localhost:6379/0 uvicorn api.main:app --reload --host 0.0.0.0 
 curl -X POST http://localhost:8000/submit -F "file=@image.jpg"
 # → {"job_id": "550e8400-e29b-41d4-a716-446655440000"}
 
-# Poll for result (returns {"status": "pending"} until worker completes it)
+# Poll for result (pending until worker finishes, then status/class_id/label/confidence)
 curl http://localhost:8000/result/550e8400-e29b-41d4-a716-446655440000
+# → {"status": "completed", "class_id": "281", "label": "tabby", "confidence": "0.7234"}
 ```
 
 ---
@@ -98,7 +107,7 @@ MiniServe/
 ├── worker/              # Inference worker + model
 │   ├── model.py         # ResNet loader, preprocessing, predict()
 │   ├── run_inference.py # Day 1 standalone script + benchmark
-│   ├── worker.py        # Stream consumer (Day 4+)
+│   ├── worker.py        # Stream consumer: XREAD → inference → result hash (Day 4)
 │   ├── requirements.txt
 │   └── imagenet_labels.txt
 ├── frontend/            # Optional minimal UI

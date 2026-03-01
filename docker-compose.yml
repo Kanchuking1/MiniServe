@@ -1,4 +1,4 @@
-# MiniServe — Day 3: API + Redis (worker in Day 4)
+# MiniServe — Day 4: API + Redis + Worker (end-to-end async)
 
 services:
   redis:
@@ -18,11 +18,21 @@ services:
     depends_on:
       - redis
 
+  worker:
+    build:
+      context: .
+      dockerfile: DockerFile.worker
+    image: miniserve-worker:latest
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+
   inference:
     build:
       context: .
       dockerfile: DockerFile.worker
     image: miniserve-worker:latest
-    command: ["--benchmark", "20"]
+    command: ["python", "worker/run_inference.py", "--benchmark", "20"]
     profiles:
       - day1

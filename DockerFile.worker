@@ -11,13 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY worker/requirements.txt ./worker/
-# CPU-only PyTorch (smaller image); then Pillow from PyPI
+# CPU-only PyTorch; Pillow + redis from PyPI
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir "Pillow>=9.0.0"
+    && pip install --no-cache-dir "Pillow>=9.0.0" "redis>=5.0.0"
 
 COPY worker/ ./worker/
 
-# Default: run benchmark (override with image path or --benchmark N)
 ENV PYTHONPATH=/app
-ENTRYPOINT ["python", "worker/run_inference.py"]
-CMD ["--benchmark", "20"]
+# Run as module so "worker" is the package and worker.model resolves
+# Day 1 benchmark: docker run ... python worker/run_inference.py --benchmark 20
+ENTRYPOINT ["python", "-m", "worker.worker"]

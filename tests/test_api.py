@@ -77,3 +77,19 @@ class TestResult:
         r = client.get("/result/00000000-0000-0000-0000-000000000000")
         assert r.status_code == 200
         assert r.json() == {"status": "pending"}
+
+    @patch("api.main.get_result")
+    def test_result_completed_returns_prediction(self, mock_get_result, client):
+        mock_get_result.return_value = {
+            "status": "completed",
+            "class_id": "281",
+            "label": "tabby",
+            "confidence": "0.7234",
+        }
+        r = client.get("/result/some-job-id")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["status"] == "completed"
+        assert data["label"] == "tabby"
+        assert data["class_id"] == "281"
+        assert data["confidence"] == "0.7234"
