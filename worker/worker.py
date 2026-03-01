@@ -1,12 +1,15 @@
 """
-MiniServe worker — Day 4: consume jobs from Redis Stream, run inference, store result in Redis Hash.
+MiniServe worker — Day 4/5: consume jobs from Redis Stream, run inference, store result.
+Day 5: worker ID, processing time, queue depth in logs; multiple replicas.
 """
 
 import base64
 import io
 import logging
 import os
+import socket
 import sys
+import time
 from pathlib import Path
 
 # Repo root on path for optional shared imports; worker runs from /app in Docker
@@ -23,6 +26,7 @@ STREAM_KEY = "miniserve:jobs"
 RESULT_KEY_PREFIX = "miniserve:result:"
 BLOCK_MS = 5000
 LOG_FILE = os.environ.get("WORKER_LOG_FILE", "worker.log")
+WORKER_ID = os.environ.get("WORKER_ID", socket.gethostname())
 
 # Logger: file (and optionally stdout). Set up at import so it works with python -m worker.worker
 logger = logging.getLogger("miniserve.worker")
@@ -72,6 +76,7 @@ def process_job(redis_client: redis.Redis, model, job_id: str, image_b64: str, d
 
 def main() -> None:
     device = "cpu"
+    print(f"Worker ID: {WORKER_ID}")
     print("Loading ResNet18...")
     model = load_model(device)
     print("Connecting to Redis...")
@@ -84,19 +89,31 @@ def main() -> None:
             continue
         # reply = [[stream_name, [(entry_id, {field: value}), ...]]]
         for _stream, messages in reply:
+            try:
+                queue_depth = r.xlen(STREAM_KEY)
+            except Exception:
+                queue_depth = -1
             for entry_id, data in messages:
                 # Before processing the job, make sure the job is not already in the result hash
                 if r.hget(result_key(data.get("job_id")), "status") == "completed":
-                    logger.info("Job %s already processed", data.get("job_id"))
+                    logger.info("Job %s already processed (worker=%s)", data.get("job_id"), WORKER_ID)
                     continue
                 last_id = entry_id
                 job_id = data.get("job_id")
                 image_b64 = data.get("image_b64")
                 if not job_id or not image_b64:
                     continue
-                logger.info("Processing job_id=%s", job_id)
+                logger.info(
+                    "Processing job_id=%s worker=%s queue_depth=%s",
+                    job_id, WORKER_ID, queue_depth,
+                )
+                t0 = time.perf_counter()
                 process_job(r, model, job_id, image_b64, device)
-                logger.info("Done job_id=%s", job_id)
+                elapsed_ms = (time.perf_counter() - t0) * 1000
+                logger.info(
+                    "Done job_id=%s worker=%s processing_time_ms=%.2f",
+                    job_id, WORKER_ID, elapsed_ms,
+                )
 
 
 if __name__ == "__main__":

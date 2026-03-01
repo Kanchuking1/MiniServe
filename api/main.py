@@ -18,7 +18,7 @@ if str(_root) not in sys.path:
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
-from api.redis_client import get_result, push_job
+from api.redis_client import get_queue_depth, get_result, push_job
 
 app = FastAPI(
     title="MiniServe",
@@ -31,13 +31,23 @@ app = FastAPI(
 def root():
     return {
         "service": "MiniServe",
-        "endpoints": ["/submit", "/result/{job_id}", "/health"],
+        "endpoints": ["/submit", "/result/{job_id}", "/health", "/queue"],
     }
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/queue")
+def queue():
+    """Return current job stream length (queue depth). For scaling and load tests."""
+    try:
+        depth = get_queue_depth()
+        return JSONResponse(content={"queue_depth": depth})
+    except Exception as e:
+        return JSONResponse(content={"queue_depth": -1, "error": str(e)}, status_code=503)
 
 
 @app.post("/submit")

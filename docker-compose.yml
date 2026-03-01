@@ -1,4 +1,4 @@
-# MiniServe — Day 4: API + Redis + Worker (end-to-end async)
+# MiniServe — Day 5: API + Redis + Worker(s); scale workers: docker compose up --scale worker=3
 
 services:
   redis:
@@ -25,6 +25,7 @@ services:
     image: miniserve-worker:latest
     environment:
       REDIS_URL: redis://redis:6379/0
+      # WORKER_ID defaults to hostname (unique per replica when using --scale worker=N)
     depends_on:
       - redis
 

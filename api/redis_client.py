@@ -45,3 +45,9 @@ def get_result(job_id: str) -> dict[str, Any] | None:
     key = result_key(job_id)
     raw = r.hgetall(key)
     return raw if raw else None
+
+
+def get_queue_depth() -> int:
+    """Return current number of entries in the job stream (queue depth)."""
+    r = get_redis()
+    return r.xlen(STREAM_KEY)

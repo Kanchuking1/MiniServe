@@ -30,6 +30,7 @@ class TestRoot:
         assert "/submit" in data["endpoints"]
         assert "/result/{job_id}" in data["endpoints"]
         assert "/health" in data["endpoints"]
+        assert "/queue" in data["endpoints"]
 
 
 class TestHealth:
@@ -68,6 +69,15 @@ class TestSubmit:
         )
         assert r.status_code == 400
         assert "Empty" in r.json()["detail"]
+
+
+class TestQueue:
+    @patch("api.main.get_queue_depth")
+    def test_queue_returns_depth(self, mock_depth, client):
+        mock_depth.return_value = 5
+        r = client.get("/queue")
+        assert r.status_code == 200
+        assert r.json()["queue_depth"] == 5
 
 
 class TestResult:

@@ -94,6 +94,26 @@ curl http://localhost:8000/result/550e8400-e29b-41d4-a716-446655440000
 # → {"status": "completed", "class_id": "281", "label": "tabby", "confidence": "0.7234"}
 ```
 
+### Scaling + load test (Day 5)
+
+Run multiple workers and check queue depth:
+
+```bash
+# Scale to 3 workers (each logs worker ID, processing time, queue depth)
+docker compose up redis api --scale worker=3
+
+# Queue depth and metrics
+curl http://localhost:8000/queue
+# → {"queue_depth": 0}
+```
+
+**Load test script** (submit N jobs, optional wait for results, report latency and queue depth):
+
+```bash
+pip install requests
+python scripts/load_test.py --image data/test_image1.png --n 20 --wait
+```
+
 ---
 
 ## Project Structure
